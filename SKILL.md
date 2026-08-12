@@ -118,6 +118,9 @@ jj --no-pager show <change-id>
 
 # View diff of working copy (use --git for familiar +/- format)
 jj --no-pager diff --git
+
+# View diff of a specific change — revisions need -r; positional args are paths
+jj --no-pager diff --git -r <change-id>
 ```
 
 **IMPORTANT: `jj diff` output format**: The default `jj diff` output uses a side-by-side line number format (e.g. `26   26:`) that looks very different from git's `+`/`-` prefix format. This is **normal and correct** — it is NOT corrupted or showing stale content. However, to avoid confusion, **always use `jj diff --git`** to get standard unified diff format with `+`/`-` lines.
