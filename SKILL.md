@@ -1,7 +1,7 @@
 ---
 name: jujutsu
-description: "**REQUIRED** - Always activate FIRST on any git/VCS operations (commit, status, branch, push, etc.), especially when HEAD is detached. If `.jj/` exists -> this is a Jujutsu (jj) repo - raw git commands can corrupt data. Essential git safety instructions inside. DO NOT IGNORE."
-allowed-tools: Bash(jj *)
+description: jujutsu (jj, jj-vcs) workflow description, and command usage for subcommands like merge, rebase, split, bookmark, git integration, etc. MUST be loaded first if the repo is managed by jj (containing .jj)
+license: MIT
 ---
 
 # Jujutsu (jj) Version Control System
