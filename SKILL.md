@@ -94,6 +94,12 @@ Then the loop:
    - `jj squash -i` opens an interactive TUI — not agent-safe, avoid
    - `jj abandon` on `@` discards scratch changes you don't want
 
+Note: squashing from `@` empties it, so jj abandons that `@` and instantly
+creates a fresh empty one — after every squash `@` is a brand-new, disposable
+commit. The target change keeps its change-id (only its commit-id changes);
+never hold on to a finished `@` — it no longer exists, and the squash loop
+regenerates it for you.
+
 When **finishing** work, use exactly one of these paths — new edits must never
 fold into a finished, described commit:
 
