@@ -76,7 +76,7 @@ a staging area and pull changes into a described change with `jj squash`.
 First decide where the change belongs:
 
 - **New change** — a distinct piece of work: start from an empty, undescribed `@`
-  and describe it before coding: `jj desc -m "print goodbye as well as hello"`.
+  and describe it before coding using the summary-and-body format in "Creating Atomic Commits".
   If `@` already has changes or a description, do not blindly run `jj new`: inspect
   `jj --no-pager show @`, then finish or split that work, or start from the intended
   base with `jj new <base>`.
@@ -86,7 +86,10 @@ First decide where the change belongs:
 
 ```bash
 # First, describe what you intend to do
-jj desc -m "Add user authentication to login endpoint"
+jj desc -m "feat(auth): authenticate login requests
+
+Validate credentials before loading the user.
+Cover accepted and rejected login attempts."
 
 # Then make your changes - they automatically become part of this commit
 # ... edit files ...
@@ -122,7 +125,19 @@ Work directly on feature changes instead of squashing; `jj new -B @` inserts a n
 
 ### Creating Atomic Commits
 
-Each commit should represent ONE logical change, with a Conventional Commits message: `type(scope): description` — e.g. `feat: add login endpoint`, `fix(user-auth): handle null pointer`, `docs: update README`, `refactor: remove deprecated endpoints`. Imperative, lowercase, no final period. Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`.
+Each commit should represent ONE logical change. Write its description as:
+
+1. A short, concise first-line summary in Conventional Commits form: `type(scope): description`.
+2. A blank line, then useful details on subsequent lines (why, behavior changes, and verification).
+
+Keep the summary imperative, lowercase, and without a final period. Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`. Example:
+
+```text
+fix(user-auth): handle missing credentials
+
+Return a clear authentication error instead of dereferencing a missing user.
+Cover the unauthenticated request path with a regression check.
+```
 
 ## Viewing and Moving Between Commits
 
