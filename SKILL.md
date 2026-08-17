@@ -68,18 +68,29 @@ Use revsets with `-r` flags: `jj log -r 'trunk()..@'`
 
 ## Essential Workflow
 
-### Starting Work: Describe First, Then Code
+### The Squash Workflow (Recommended)
 
-**Always create your commit message before writing code:**
+The workflow preferred by jj's creator, and the default way to work: treat `@` as
+a staging area and pull changes into a described change with `jj squash`.
+**Always create your commit message before writing code.**
 
-Run `jj st` and start only from an empty, undescribed `@`. If `@` already has changes or a description, do not blindly run `jj new`: inspect `jj --no-pager show @`, then finish or split that work, or create the new change from the intended base with `jj new <base>`.
+Run `jj st` and start only from an empty, undescribed `@`. If `@` already has
+changes or a description, do not blindly run `jj new`: inspect `jj --no-pager show @`,
+then finish or split that work, or create the new change from the intended base with `jj new <base>`.
 
-When **finishing** work, use exactly one of these paths:
+1. Describe the work on the current (empty) change: `jj desc -m "print goodbye as well as hello"`
+2. Create an empty scratch change on top: `jj new` — this `@` acts like the git index
+3. Do the work in `@`, then move it into the described change: `jj squash`
+   - `jj squash <paths>` moves only the given paths
+   - `jj squash -i` opens an interactive TUI — not agent-safe, avoid
+   - `jj abandon` on `@` discards scratch changes you don't want
+4. `jj squash` works on any change and its parent, not just the working copy
 
-- In the describe-first workflow, run `jj new` once after the current `@` is complete. The finished change becomes `@-` and the new `@` is empty.
-- After `jj commit -m "message" [<paths>]`, do not run `jj new` again. `jj commit` already created a new `@`; inspect it with `jj st`. If it contains unselected changes, keep them in `@` and describe, split, or finish them before starting unrelated work.
+When **finishing** work, use exactly one of these paths — new edits must never
+fold into a finished, described commit:
 
-New edits must never fold into a finished, described commit.
+- In the squash/describe-first workflow, run `jj new` once after the current `@` is complete: the finished change becomes `@-` and the new `@` is empty.
+- After `jj commit -m "message" [<paths>]`, do not run `jj new` again: `jj commit` already created a new `@`. Inspect it with `jj st`; if it contains unselected changes, keep them in `@` and describe, split, or finish them before starting unrelated work.
 
 ```bash
 # First, describe what you intend to do
@@ -91,6 +102,10 @@ jj desc -m "Add user authentication to login endpoint"
 # Check status
 jj st
 ```
+
+### Alternative: The Edit Workflow
+
+Work directly on feature changes instead of squashing; `jj new -B @` inserts a new change *before* the current one with automatic descendant rebase. Full steps: [edit-workflow.md](references/edit-workflow.md).
 
 ### Creating Atomic Commits
 
@@ -127,40 +142,6 @@ jj edit <change-id>               # edit an existing commit (@ becomes it)
 jj prev -e                        # edit the previous commit
 jj next -e                        # edit the next commit
 ```
-
-## Workflows
-
-Two established workflows from [Steve Klabnik's jujutsu tutorial](https://steveklabnik.github.io/jujutsu-tutorial/real-world-workflows/intro.html).
-
-### The Squash Workflow
-
-The workflow preferred by jj's creator: treat `@` as a staging area and pull
-changes into a described change with `jj squash`.
-
-1. Describe the work on the current (empty) change: `jj desc -m "print goodbye as well as hello"`
-2. Create an empty scratch change on top: `jj new` — this `@` acts like the git index
-3. Do the work in `@`, then move it into the described change: `jj squash`
-   - `jj squash <paths>` moves only the given paths
-   - `jj squash -i` opens an interactive TUI — not agent-safe, avoid
-   - `jj abandon` on `@` discards scratch changes you don't want
-4. `jj squash` works on any change and its parent, not just the working copy
-
-### The Edit Workflow
-
-Work directly on feature changes, and insert new changes *before* the current
-one when they must land first.
-
-1. Start a feature change: `jj new -m "only print hello world"`
-2. Do the work in it; if that's all you need, you're done
-3. To add a change that must come BEFORE the current one:
-   `jj new -B @ -m "add more comments"` — inserts before `@` and automatically
-   rebases descendant commits (always succeeds; conflicts resolve later)
-4. Make that change, then return to the main change with `jj edit <change-id>`
-   or `jj next --edit` (edits the child of `@`)
-
-Note: `jj new -B` rebases descendants — change IDs stay stable while commit
-IDs change.
-
 ## Refining Commits
 ### Squashing Changes
 
@@ -453,6 +434,7 @@ Read the focused guide that matches the task. Each guide teaches a workflow and 
 9. [`references/installation.md`](references/installation.md): install jj, verify its Git requirement, set author identity, and create a first repository.
 10. [`references/workspaces.md`](references/workspaces.md): add a second working copy for parallel builds/tests, and handle staleness and divergence.
 11. [`references/run.md`](references/run.md): apply a formatter, linter, or test across many revisions with `jj run`.
+12. [`references/edit-workflow.md`](references/edit-workflow.md): work directly on feature changes, and insert changes before the current commit with `jj new -B`.
 
 For revision selection syntax used throughout these guides, read [`references/revsets.md`](references/revsets.md).
 ## Source
