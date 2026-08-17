@@ -74,17 +74,25 @@ The workflow preferred by jj's creator, and the default way to work: treat `@` a
 a staging area and pull changes into a described change with `jj squash`.
 **Always create your commit message before writing code.**
 
-Run `jj st` and start only from an empty, undescribed `@`. If `@` already has
-changes or a description, do not blindly run `jj new`: inspect `jj --no-pager show @`,
-then finish or split that work, or create the new change from the intended base with `jj new <base>`.
+First decide where the change belongs:
 
-1. Describe the work on the current (empty) change: `jj desc -m "print goodbye as well as hello"`
-2. Create an empty scratch change on top: `jj new` — this `@` acts like the git index
-3. Do the work in `@`, then move it into the described change: `jj squash`
+- **New change** — a distinct piece of work: start from an empty, undescribed `@`
+  and describe it before coding: `jj desc -m "print goodbye as well as hello"`.
+  If `@` already has changes or a description, do not blindly run `jj new`: inspect
+  `jj --no-pager show @`, then finish or split that work, or start from the intended
+  base with `jj new <base>`.
+- **Existing change** — fixing or extending a commit you already made (e.g. review
+  feedback): update its description with `jj describe <change-id> -m "..."`, then
+  squash the new work into it (`jj squash --into <change-id>` below).
+
+Then the loop:
+
+1. Create an empty scratch change on top: `jj new` — this `@` acts like the git index
+2. Do the work in `@`
+3. Move it into the target change: `jj squash` amends the parent commit; `jj squash --into <change-id>` targets any commit — not just the one before `@`
    - `jj squash <paths>` moves only the given paths
    - `jj squash -i` opens an interactive TUI — not agent-safe, avoid
    - `jj abandon` on `@` discards scratch changes you don't want
-4. `jj squash` works on any change and its parent, not just the working copy
 
 When **finishing** work, use exactly one of these paths — new edits must never
 fold into a finished, described commit:
