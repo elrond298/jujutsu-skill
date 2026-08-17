@@ -394,57 +394,17 @@ Do not use `jj resolve` in an agent — it launches an interactive merge tool. S
 3. **Is the message clear?** Use Conventional Commits (`type: description`, lowercase imperative, no final stop): e.g. `feat: add login endpoint`, `fix: handle null pointer in payment processor`, `chore: update dependencies`
 4. **Are there unrelated changes?** Use `jj commit -m "<message>" <paths>` to finish the related files; inspect the remaining changes left in the new `@`
 5. **Should changes be elsewhere?** Use `jj squash` or `jj absorb`
-6. **Verify the whole stack**: run formatters/linters/tests across every commit with `jj run -r '::@'` (below)
+6. **Verify the whole stack**: run formatters/linters/tests across every commit with `jj run -r '::@'` — see [run.md](references/run.md)
 
 ## Running Commands Across Revisions (`jj run`)
 
-`jj run` checks out each selected revision in an isolated working copy, runs a
-command, and amends the revision with the resulting working copy — effectively
-"apply this command to every commit", with automatic descendant rebasing.
+`jj run` applies one command to many revisions: it checks out each selected revision in an isolated working copy, runs the command, and amends the revision with the result (descendants rebased automatically). Typical uses: format, lint, or test every commit in a stack; run a pre-commit hook; regenerate files. Runs never touch your own working copy.
 
-The subprocesses run in temporary working copies (under `.jj/`), so your own
-working copy and files are never touched — you can keep editing while `jj run`
-runs. Like all rewrite commands, it refuses immutable/public commits; only
-`--ignore-changes` (no rewrite at all) or `--ignore-immutable` bypass that.
+- `jj run -r <revset> -- <cmd>` — select revisions with `-r` (default `@`), parallelize with `-j <n>`; use `--` before the command so its flags aren't parsed by jj
+- `--ignore-changes` — read-only checks (tests, linters) without rewriting any commit; also permits immutable commits
+- `--ignore-errors` — continue past failing commands; `--clean` starts each commit from a fresh checkout; `--passthrough` for TTY output (single job only)
 
-Typical uses: apply a formatter or pre-commit hook across a stack, regenerate
-files, or test each commit in isolation.
-
-- Select revisions with `-r <revset>` (defaults to `@`). Parallelize with `-j <n>`
-  (also configurable via the `run.jobs` config setting).
-- The command runs from the directory `jj run` was invoked from; use `--root` to
-  run from each commit's working-copy root instead.
-- The command sees `JJ_CHANGE_ID`, `JJ_COMMIT_ID`, and `JJ_WORKSPACE_ROOT`.
-- Use a `--` separator so command arguments starting with `-` are not parsed as
-  jj flags: `jj run -r '::@' -- cargo fmt`
-- By default, working copies are reused between invocations so build artifacts
-  survive; `--clean` starts each commit from a fresh checkout.
-- `--ignore-changes` runs the command but discards working-copy changes and
-  rewrites nothing — ideal for read-only checks (tests, linters), and it works on
-  immutable commits without `--ignore-immutable`.
-- `--ignore-errors` continues past failing commands; a failed command's changes
-  are not saved, successful ones are applied atomically.
-- `--passthrough` connects stdout/stderr to the terminal (TTY behavior, colors,
-  progress bars) but allows only one job.
-
-```bash
-# Run pre-commit on your local work
-jj run -j 4 -- pre-commit run .github/pre-commit.yaml
-
-# Apply a formatter to every commit in the current stack
-jj run -r '::@' -- cargo fmt
-
-# Lint all descendants without rewriting anything
-jj run -r '::@' --ignore-changes -- cargo clippy
-
-# Build across a stack, reusing the target dir between runs
-jj run -r '::@' -- bazel build //some/target:somewhere
-```
-
-Warning: except with `--ignore-changes`, `jj run` rewrites the selected commits,
-so commit IDs change. Descendants are rebased to propagate the diff by default;
-`--restore-descendants` keeps descendants' content unchanged instead.
-
+Full options, examples, and rewrite semantics: [run.md](references/run.md).
 ## Quick Reference
 
 | Action | Command |
@@ -492,6 +452,7 @@ Read the focused guide that matches the task. Each guide teaches a workflow and 
 8. [`references/operation-log.md`](references/operation-log.md): inspect earlier repository views and choose among undo, revert, restore, and per-change evolution.
 9. [`references/installation.md`](references/installation.md): install jj, verify its Git requirement, set author identity, and create a first repository.
 10. [`references/workspaces.md`](references/workspaces.md): add a second working copy for parallel builds/tests, and handle staleness and divergence.
+11. [`references/run.md`](references/run.md): apply a formatter, linter, or test across many revisions with `jj run`.
 
 For revision selection syntax used throughout these guides, read [`references/revsets.md`](references/revsets.md).
 ## Source
