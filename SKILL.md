@@ -94,15 +94,7 @@ jj st
 
 ### Creating Atomic Commits
 
-Each commit should represent ONE logical change. Use this format for commit messages:
-
-```
-Examples:
-- "Add validation to user input forms"
-- "Fix null pointer in payment processor"
-- "Remove deprecated API endpoints"
-- "Update dependencies to latest versions"
-```
+Each commit should represent ONE logical change, with a message in imperative sentence case and no final period: "Add validation to user input forms", "Fix null pointer in payment processor", "Remove deprecated API endpoints", "Update dependencies to latest versions".
 
 ### Viewing History
 
@@ -130,18 +122,10 @@ jj --no-pager diff --git -r <change-id>
 ```bash
 # Create a new empty commit on top of current
 jj new
-
-# Create new commit with message
-jj new -m "Commit message"
-
-# Edit an existing commit (working copy becomes that commit)
-jj edit <change-id>
-
-# Edit the previous commit
-jj prev -e
-
-# Edit the next commit
-jj next -e
+jj new -m "Commit message"        # or with a message
+jj edit <change-id>               # edit an existing commit (@ becomes it)
+jj prev -e                        # edit the previous commit
+jj next -e                        # edit the next commit
 ```
 
 ## Workflows
@@ -247,21 +231,16 @@ jj abandon <change-id>
 
 ### Undoing Operations
 
-Inspect the operation log before reversing anything; another process or workspace may have created the latest operation:
+Inspect the operation log before reversing anything — another process or workspace may have created the latest operation:
 
 ```bash
 jj --no-pager op log
-
-# Use only when the latest operation is the one you intend to reverse
-jj undo
-jj st
-
-# Reverse an older operation while preserving later work
-jj op revert <operation-id>
+jj undo                # only when the latest operation is the one you intend to reverse
+jj op revert <id>      # reverse an older operation while preserving later work
 jj st
 ```
 
-Use `jj undo` only for the verified latest operation. For older mistakes, use targeted `jj op revert`; reserve `jj op restore` for restoring the entire repository view. See [operation-log.md](references/operation-log.md) for the recovery sequence.
+Use `jj undo` only for the verified latest operation; reserve `jj op restore` for restoring the entire repository view. See [operation-log.md](references/operation-log.md) for the recovery sequence.
 
 ### Rebasing Commits
 
@@ -316,42 +295,7 @@ jj bookmark delete my-feature
 
 ## Workspaces
 
-A **workspace** is a working copy plus its associated repo. One repo can have multiple workspaces — each with its own working directory and working-copy commit (`@`) — all sharing the same commits, operations, and bookmarks. This is jj's equivalent of `git worktree`.
-
-Useful for running a long build or test in one workspace while editing in another. Workspaces are a rarely-needed feature; consult the [official docs](https://docs.jj-vcs.dev/latest/working-copy/#workspaces) for anything beyond the basics below.
-
-### Common commands
-
-```bash
-# Create a new workspace (defaults: name = basename of path, parent = current @'s parent)
-jj workspace add ../my-tests
-jj workspace add --name tests -r <change-id> ../my-tests   # explicit name and base
-
-# Inspect
-jj --no-pager workspace list
-jj workspace root [--name <ws>]
-
-# Remove (does NOT delete files on disk — rm the directory separately)
-jj workspace forget [<ws>]
-
-# Rename current workspace
-jj workspace rename <new-name>
-```
-
-In `jj log`, each workspace's `@` appears as `<workspace-name>@`.
-
-### Key semantics
-
-- **Isolation by default.** `jj workspace add` gives the new workspace its own fresh empty commit; workspaces don't start out sharing `@`, and on-disk files are never live-mirrored between them.
-- **Propagation at command boundaries.** Each jj command snapshots the current workspace's files and reads the op log, so it sees commits/bookmarks made by other workspaces. There is no filesystem watcher.
-- **Stale working copy.** If another workspace rewrites this workspace's `@` (e.g. via `jj squash`, `rebase`, `abandon`), jj refuses commands here until you run `jj workspace update-stale`. Same recovery path if a command was interrupted mid-update.
-- **Shared `@` is sharp-edged.** `jj edit <id>` lets two workspaces point at the same change without warning. When one mutates it, the other goes stale; if the stale one had un-snapshotted edits, `update-stale` preserves them as a **divergent commit** (same change ID, shown as `xyz??` in `jj log`) that you must resolve. Avoid sharing `@` unless both workspaces are read-only.
-
-### Agent guidance
-
-- Always pass `--no-pager` to `jj workspace list`.
-- Don't `jj edit` a change another workspace already has as its `@` — main cause of accidental divergence.
-- Don't `rm -rf` a workspace directory without also running `jj workspace forget <name>`.
+A workspace is a working copy plus its associated repo — jj's equivalent of `git worktree`. One repo can have several, each with its own `@` (labeled `<workspace-name>@` in `jj log`), sharing commits and bookmarks. Useful for running a long build/test in one workspace while editing in another. See [workspaces.md](references/workspaces.md) for commands, isolation/stale-working-copy semantics, and agent guidance.
 
 ## Git Integration
 
@@ -382,25 +326,7 @@ After fetching, rebase your work onto the updated trunk: `jj rebase -o main`
 
 ### Switching Between jj and git (Colocated Repos Only)
 
-**This section only applies to colocated repos** (where both `.jj/` and `.git/` exist). In a non-colocated workspace, use `jj git` commands; the backing Git repository is hidden inside `.jj/`.
-
-In a colocated repository, you can use both jj and git commands with care:
-
-Git can switch branches only when the shared working tree is clean from Git's perspective. A bare `jj st` merely snapshots changes; it does not make Git clean. Finish the jj change and create an empty `@` first:
-
-```bash
-# Finish the current jj change; this creates a new empty @
-jj commit -m "message"
-jj st
-git status --short
-
-# Continue only when both commands report no working-copy changes
-git checkout <branch-name>
-```
-
-After Git work, run `jj st`. That command imports Git's HEAD and refs and resets the jj working-copy parent when needed; do not run `jj edit` merely to switch back. Choose `jj edit <change-id>` only when you intentionally want to rewrite that existing change.
-
-Prefer jj for mutations and Git for read-only tools. Before any Git checkout, commit, merge, or rebase, ensure both `jj st` and `git status --short` are clean. See [colocated-repos.md](references/colocated-repos.md) for the full workflow.
+Only for colocated repos (both `.jj/` and `.git/`): finish the jj change and verify both `jj st` and `git status --short` are clean before any git checkout, commit, merge, or rebase. Full flow and the colocation decision: [colocated-repos.md](references/colocated-repos.md).
 
 ### Pushing Changes
 
@@ -441,7 +367,7 @@ jj git push -b my-feature
 
 ## Handling Conflicts
 
-jj stores conflicts in commits, so first locate the conflicted revision instead of assuming it is `@`:
+Conflicts are stored in commits — locate them first instead of assuming `@`:
 
 ```bash
 jj st
@@ -454,10 +380,10 @@ jj new <conflicted-revision>
 jj --no-pager diff --git
 jj squash -u
 jj st
-jj --no-pager log -r 'conflicts()'
+jj --no-pager log -r 'conflicts()'   # should no longer list the revision
 ```
 
-Do not use `jj resolve` in an agent because it launches an interactive merge tool. The final `conflicts()` query should no longer list the resolved revision. See [conflicts.md](references/conflicts.md) for marker formats, divergence, and bookmark conflicts.
+Do not use `jj resolve` in an agent — it launches an interactive merge tool. See [conflicts.md](references/conflicts.md) for marker formats, divergence, and bookmark conflicts.
 
 ## Preserving Commit Quality
 
@@ -521,7 +447,6 @@ so commit IDs change. Descendants are rebased to propagate the diff by default;
 
 ## Quick Reference
 
-
 | Action | Command |
 |--------|---------|
 | Describe commit | `jj desc -m "message"` |
@@ -559,13 +484,14 @@ Read the focused guide that matches the task. Each guide teaches a workflow and 
 
 1. [`references/anonymous-branches-and-merging.md`](references/anonymous-branches-and-merging.md): learn how unnamed forks work, then choose between a multi-parent merge and a rebase.
 2. [`references/conflicts.md`](references/conflicts.md): resolve committed file conflicts, divergent change IDs, and conflicted bookmarks without confusing the three states.
-3. [`references/colocated-repos.md`](references/colocated-repos.md): decide whether jj and Git should share a working copy and learn how to mix tools safely.
+3. [`references/colocated-repos.md`](references/colocated-repos.md): decide whether jj and Git should share a working copy, and learn how to mix tools and switch branches safely.
 4. [`references/git-command-table.md`](references/git-command-table.md): translate familiar Git intentions into Jujutsu's working-copy, revision, bookmark, and operation model.
 5. [`references/faq.md`](references/faq.md): diagnose missing commits, stationary bookmarks, partial changes, empty merges, and other common surprises.
 6. [`references/github.md`](references/github.md): publish stacks, update reviews, work with forks, and use generated or named bookmarks on GitHub and GitLab.
 7. [`references/windows.md`](references/windows.md): set line endings, quote PowerShell revsets, avoid WSL permission noise, and configure symlinks.
 8. [`references/operation-log.md`](references/operation-log.md): inspect earlier repository views and choose among undo, revert, restore, and per-change evolution.
 9. [`references/installation.md`](references/installation.md): install jj, verify its Git requirement, set author identity, and create a first repository.
+10. [`references/workspaces.md`](references/workspaces.md): add a second working copy for parallel builds/tests, and handle staleness and divergence.
 
 For revision selection syntax used throughout these guides, read [`references/revsets.md`](references/revsets.md).
 ## Source

@@ -36,6 +36,23 @@ jj --no-pager op log
 
 The next `jj` command imports the Git result. The operation log records that import, so `jj undo` or `jj op restore` can recover local repository state if the result is wrong.
 
+## Switch branches cleanly
+
+Git can switch branches only when the shared working tree is clean from Git's perspective. A bare `jj st` merely snapshots changes; it does not make Git clean. Finish the jj change and create an empty `@` first:
+
+```bash
+# Finish the current jj change; this creates a new empty @
+jj commit -m "message"
+jj st
+git status --short
+
+# Continue only when both commands report no working-copy changes
+git checkout <branch-name>
+```
+
+After Git work, run `jj st`. That command imports Git's HEAD and refs and resets the jj working-copy parent when needed; do not run `jj edit` merely to switch back. Choose `jj edit <change-id>` only when you intentionally want to rewrite that existing change.
+
+Before any Git checkout, commit, merge, or rebase, ensure both `jj st` and `git status --short` are clean.
 ## Know what does not translate
 
 Colocation does not make every Git feature part of Jujutsu:
