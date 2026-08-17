@@ -94,7 +94,7 @@ jj st
 
 ### Creating Atomic Commits
 
-Each commit should represent ONE logical change, with a message in imperative sentence case and no final period: "Add validation to user input forms", "Fix null pointer in payment processor", "Remove deprecated API endpoints", "Update dependencies to latest versions".
+Each commit should represent ONE logical change, with a Conventional Commits message: `type(scope): description` — e.g. `feat: add login endpoint`, `fix(user-auth): handle null pointer`, `docs: update README`, `refactor: remove deprecated endpoints`. Imperative, lowercase, no final period. Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`.
 
 ### Viewing History
 
@@ -391,7 +391,7 @@ Do not use `jj resolve` in an agent — it launches an interactive merge tool. S
 
 1. **Review your commit**: `jj --no-pager show @` or `jj --no-pager diff --git`
 2. **Is it atomic?** One logical change per commit
-3. **Is the message clear?** Use imperative verb phrase in sentence case format with no full stop: e.g. "Add login endpoint", "Fix null pointer in payment processor", "Remove deprecated API endpoints"
+3. **Is the message clear?** Use Conventional Commits (`type: description`, lowercase imperative, no final stop): e.g. `feat: add login endpoint`, `fix: handle null pointer in payment processor`, `chore: update dependencies`
 4. **Are there unrelated changes?** Use `jj commit -m "<message>" <paths>` to finish the related files; inspect the remaining changes left in the new `@`
 5. **Should changes be elsewhere?** Use `jj squash` or `jj absorb`
 6. **Verify the whole stack**: run formatters/linters/tests across every commit with `jj run -r '::@'` (below)
