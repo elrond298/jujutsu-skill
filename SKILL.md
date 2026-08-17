@@ -23,14 +23,13 @@ jj --no-pager diff         # NOT: jj diff
 jj --no-pager show <id>    # NOT: jj show <id>
 ```
 
-2. **Pass descriptions inline** instead of relying on editor prompts. For `squash`, either keep the destination description with `-u` or provide the final description with `-m`:
+2. **Pass descriptions inline** instead of relying on editor prompts — jj opens an editor whenever a description is missing, which will hang or fail in non-interactive environments:
 
 ```bash
 jj desc -m "message"          # NOT: jj desc
-jj squash -u                  # Keep destination description
-jj squash --into <rev> -u     # Squash elsewhere without an editor
-jj squash -m "final message"  # Explicitly set the resulting description
 ```
+
+The `squash`, `split`, and `resolve` editor/interactive flags are noted under each command below.
 
 Editor-based commands will fail in non-interactive environments.
 
@@ -85,27 +84,6 @@ First decide where the change belongs:
   feedback): update its description with `jj describe <change-id> -m "..."`, then
   squash the new work into it (`jj squash --into <change-id>` below).
 
-Then the loop:
-
-1. Create an empty scratch change on top: `jj new` — this `@` acts like the git index
-2. Do the work in `@`
-3. Move it into the target change: `jj squash` amends the parent commit; `jj squash --into <change-id>` targets any commit — not just the one before `@`
-   - `jj squash <paths>` moves only the given paths
-   - `jj squash -i` opens an interactive TUI — not agent-safe, avoid
-   - `jj abandon` on `@` discards scratch changes you don't want
-
-Note: squashing from `@` empties it, so jj abandons that `@` and instantly
-creates a fresh empty one — after every squash `@` is a brand-new, disposable
-commit. The target change keeps its change-id (only its commit-id changes);
-never hold on to a finished `@` — it no longer exists, and the squash loop
-regenerates it for you.
-
-When **finishing** work, use exactly one of these paths — new edits must never
-fold into a finished, described commit:
-
-- In the squash/describe-first workflow, run `jj new` once after the current `@` is complete: the finished change becomes `@-` and the new `@` is empty.
-- After `jj commit -m "message" [<paths>]`, do not run `jj new` again: `jj commit` already created a new `@`. Inspect it with `jj st`; if it contains unselected changes, keep them in `@` and describe, split, or finish them before starting unrelated work.
-
 ```bash
 # First, describe what you intend to do
 jj desc -m "Add user authentication to login endpoint"
@@ -117,6 +95,27 @@ jj desc -m "Add user authentication to login endpoint"
 jj st
 ```
 
+Then the loop:
+
+1. Create an empty scratch change on top: `jj new` — this `@` acts like the git index
+2. Do the work in `@`
+3. Move it into the target change: `jj squash` amends the parent commit; `jj squash --into <change-id>` targets any commit — not just the one before `@`
+   - `jj squash <paths>` moves only the given paths
+   - `jj abandon` on `@` discards scratch changes you don't want
+   - Flag details (`-u`, `-m`, and interactive `-i`) are in "Squashing Changes" below
+
+Note: squashing from `@` empties it, so jj abandons that `@` and instantly
+creates a fresh empty one — after every squash `@` is a brand-new, disposable
+commit. The target change keeps its change-id (only its commit-id changes);
+never hold on to a finished `@` — it no longer exists, and the squash loop
+regenerates it for you.
+
+When **finishing** work, use exactly one of these paths — new edits must never
+fold into a finished, described commit:
+
+- In the squash/describe-first workflow, run `jj new` once after the current `@` is complete: the finished change becomes `@-` and the new `@` is empty.
+- After `jj commit -m "message" [<paths>]` (see "Splitting Commits"), do not run `jj new` again: `jj commit` already created a new `@`. Inspect it with `jj st`; if it contains unselected changes, keep them in `@` and describe, split, or finish them before starting unrelated work.
+
 ### Alternative: The Edit Workflow
 
 Work directly on feature changes instead of squashing; `jj new -B @` inserts a new change *before* the current one with automatic descendant rebase. Full steps: [edit-workflow.md](references/edit-workflow.md).
@@ -124,6 +123,8 @@ Work directly on feature changes instead of squashing; `jj new -B @` inserts a n
 ### Creating Atomic Commits
 
 Each commit should represent ONE logical change, with a Conventional Commits message: `type(scope): description` — e.g. `feat: add login endpoint`, `fix(user-auth): handle null pointer`, `docs: update README`, `refactor: remove deprecated endpoints`. Imperative, lowercase, no final period. Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`.
+
+## Viewing and Moving Between Commits
 
 ### Viewing History
 
@@ -156,7 +157,9 @@ jj edit <change-id>               # edit an existing commit (@ becomes it)
 jj prev -e                        # edit the previous commit
 jj next -e                        # edit the next commit
 ```
+
 ## Refining Commits
+
 ### Squashing Changes
 
 Move changes from the current commit into its parent or another revision:
@@ -167,6 +170,9 @@ jj squash -u
 
 # Squash into a specific revision
 jj squash --into <change-id> -u
+
+# Set the resulting description explicitly
+jj squash -m "final message"
 ```
 
 Without `-u` or `-m`, `squash` opens an editor when both source and destination have descriptions. `jj squash -i` opens an interactive diff UI. Avoid both interactive modes in agent environments.
@@ -270,6 +276,8 @@ jj restore path/to/file.txt
 jj restore --from <change-id> path/to/file.txt
 ```
 
+To *keep* changes while moving them out of `@`, use `jj commit <paths>` instead — see "Splitting Commits".
+
 ## Working with Bookmarks (Branches)
 
 Bookmarks are jj's equivalent to git branches:
@@ -336,7 +344,7 @@ jj git push -b main
 ```
 
 **Before pushing, ensure:**
-1. Your bookmark points to the correct commit (bookmarks don't auto-advance like git branches)
+1. Your bookmark points to the correct commit (update it manually — see below)
 2. The commits are refined and atomic
 3. The user has explicitly requested the push
 
@@ -385,9 +393,9 @@ Do not use `jj resolve` in an agent — it launches an interactive merge tool. S
 **IMPORTANT**: Because commits are mutable, always refine them before considering work done:
 
 1. **Review your commit**: `jj --no-pager show @` or `jj --no-pager diff --git`
-2. **Is it atomic?** One logical change per commit
-3. **Is the message clear?** Use Conventional Commits (`type: description`, lowercase imperative, no final stop): e.g. `feat: add login endpoint`, `fix: handle null pointer in payment processor`, `chore: update dependencies`
-4. **Are there unrelated changes?** Use `jj commit -m "<message>" <paths>` to finish the related files; inspect the remaining changes left in the new `@`
+2. **Is it atomic?** One logical change per commit — see "Creating Atomic Commits"
+3. **Is the message clear?** Follow the Conventional Commits format in "Creating Atomic Commits"
+4. **Are there unrelated changes?** Use `jj commit -m "<message>" <paths>` to finish the related files (see "Splitting Commits"); inspect the remaining changes left in the new `@`
 5. **Should changes be elsewhere?** Use `jj squash` or `jj absorb`
 6. **Verify the whole stack**: run formatters/linters/tests across every commit with `jj run -r '::@'` — see [run.md](references/run.md)
 
@@ -400,6 +408,7 @@ Do not use `jj resolve` in an agent — it launches an interactive merge tool. S
 - `--ignore-errors` — continue past failing commands; `--clean` starts each commit from a fresh checkout; `--passthrough` for TTY output (single job only)
 
 Full options, examples, and rewrite semantics: [run.md](references/run.md).
+
 ## Quick Reference
 
 | Action | Command |
@@ -408,7 +417,7 @@ Full options, examples, and rewrite semantics: [run.md](references/run.md).
 | View status | `jj st` |
 | View log | `jj --no-pager log` |
 | View diff | `jj --no-pager diff --git` |
-| New commit | `jj new -m "message"` (only after inspecting and finishing existing `@`) |
+| New commit | `jj new -m "message"` |
 | Edit commit | `jj edit <id>` |
 | Squash to parent | `jj squash -u` |
 | Auto-distribute | `jj absorb` |
@@ -425,15 +434,7 @@ Full options, examples, and rewrite semantics: [run.md](references/run.md).
 | Fix stale working copy | `jj workspace update-stale` |
 | Run command across revisions | `jj run -r <revset> -- <cmd>` |
 
-## Best Practices Summary
-
-1. **Describe first**: Set the commit message before coding
-2. **One change per commit**: Keep commits atomic and focused
-3. **Use change IDs**: They're stable across rewrites
-4. **Refine commits**: Leverage mutability for clean history
-5. **Embrace the workflow**: No staging area, no stashing - just commits
-
-## Learning guides
+## Learning Guides
 
 Read the focused guide that matches the task. Each guide teaches a workflow and links its source material at the end.
 
@@ -451,6 +452,7 @@ Read the focused guide that matches the task. Each guide teaches a workflow and 
 12. [`references/edit-workflow.md`](references/edit-workflow.md): work directly on feature changes, and insert changes before the current commit with `jj new -B`.
 
 For revision selection syntax used throughout these guides, read [`references/revsets.md`](references/revsets.md).
+
 ## Source
 
 Incorporates [danverbraganza/jujutsu-skill](https://github.com/danverbraganza/jujutsu-skill), licensed under MIT; see [`LICENSE`](LICENSE).
